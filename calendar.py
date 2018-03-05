@@ -1,10 +1,9 @@
-import subprocess
 import datetime
-import os
-import logging
+import subprocess
 import re
-
-APP_DIR = os.path.dirname(os.path.realpath(__file__))
+import logging
+import transaction
+import configuration
 
 
 # A calendar which stores Day objects and maintains the relationship of
@@ -16,6 +15,7 @@ class Calendar:
         self.days = {}
         self.first_day = None
         self.last_day = None
+        self.config = configuration.AppConfiguration('budget-calendar')
 
     # Update the running balance of each account of each day based on the
     # transactions added to each day of the calendar
@@ -79,13 +79,17 @@ class Calendar:
 
     # Add
     def update_cal(self, transactions):
-
-        for tran in transactions:
+        trans = list()
+        trans.append(transactions)
+        for tran in trans:
 
             if str(tran.date) not in self.days:
                 self.days[str(tran.date)] = Day(tran.date)
 
             self.days[str(tran.date)].add_transaction(tran)
+
+        self.complete_calendar()
+        self.update_running_bal(True)
 
     def str_to_obj(self, date_str):
         year, month, day = date_str.split('-')
@@ -108,7 +112,7 @@ class Calendar:
 
     # Write the calendar and all contents to a single file
     def save_calendar(self):
-        calendar_save = open(APP_DIR + '/calendar_save.txt', 'w')
+        calendar_save = open(self.config.app_dir + '/calendar_save.txt', 'w')
 
         calendar_text = self.print_calendar(output=False)
         calendar_save.write(calendar_text)
@@ -149,6 +153,45 @@ class Calendar:
             year, month, day = curr_date.split('-')
             temp_date = datetime.date(int(year), int(month), int(day))
             curr_date = str(temp_date + date_diff)
+
+    # Retrieve all new transactions from files in the given directory. Return a
+    # list of transaction objects
+    def open_transactions(self):
+        transaction_dir = self.config.app_dir + '/transactions'
+        files_in_dir = subprocess.check_output(['ls', transaction_dir]).split()
+        acc_ids = self.config.acc_iden
+
+        for transaction_file_name in files_in_dir:
+            path_name = transaction_dir + '/' + transaction_file_name
+            account = None
+            begin_read = False
+
+            for iden in acc_ids:
+
+                if iden in path_name:
+                    account = iden
+                    break
+
+            if not account:
+                raise ValueError('Filename does not match a known account')
+
+            with open(path_name) as transactions_file:
+
+                for line in transactions_file:
+                    line = line.rstrip('\r\n')
+                    line = re.sub('(?<=[A-Z])(,)(?=[A-Z\s])', ' ', line)
+                    line = line.split(',')
+
+                    if 'Date' in line[0] and not begin_read:
+                        line[0] = 'Date'
+                        begin_read = True
+                        self.config.trans_iden[account] = line
+                        continue
+
+                    if begin_read:
+                        trans_cfg = {'Account': account, 'info_dict_keys': self.config.trans_iden[account]}
+                        tran = transaction.Transaction(trans_cfg, line, new_transaction_info={})
+                        self.update_cal(tran)
 
 
 # An object that stores a list of transaction objects
@@ -204,146 +247,3 @@ class Day:
                     save_text += transaction.print_transaction()
 
         return save_text
-
-
-# Class for potential transactions
-class Potential:
-
-    def __init__(self):
-        pass
-
-
-# Class for transactions read from bank statements
-class Transaction:
-
-    def __init__(self, new_transaction_info=None):
-        self.transaction_info = new_transaction_info
-
-        if self.transaction_info:
-            date = new_transaction_info['Date']
-            month, day, year = date.split('/')
-            self.date = datetime.date(int(year), int(month), int(day))
-
-    def print_transaction(self):
-        save_text = '\n        '
-        for key in self.transaction_info:
-            save_text += key + "," + self.transaction_info[key] + '//'
-
-        save_text = save_text[:-2]
-        return save_text
-
-
-# Retrieve all new transactions from files in the given directory. Return a
-# list of transaction objects
-def open_transactions():
-    transaction_dir = APP_DIR + '/transactions'
-    files_in_dir = subprocess.check_output(['ls', transaction_dir]).split()
-    transactions = list()
-    acc_ids = read_config_file()
-
-    for transaction_file_name in files_in_dir:
-        path_name = transaction_dir + '/' + transaction_file_name
-        account = None
-        begin_read = False
-
-        for iden in acc_ids:
-
-            if iden in path_name:
-                account = iden
-                break
-
-        if not account:
-            raise ValueError('Filename does not match a known account')
-
-        with open(path_name) as transactions_file:
-
-            for line in transactions_file:
-                trans_dict = {}
-                line = line.rstrip('\r\n')
-                line = re.sub('(?<=[A-Z])(,)(?=[A-Z\s])', ' ', line)
-                line = line.split(',')
-
-                if 'Date' in line[0] and not begin_read:
-                    line[0] = 'Date'
-                    begin_read = True
-                    info_dict_keys = line
-                    continue
-
-                if begin_read:
-                    trans_dict['Account'] = account
-
-                    for idx in range(len(info_dict_keys)):
-
-                        if line[idx] == '':
-                            line[idx] = '0.00'
-
-                        line[idx] = line[idx].rstrip('"')
-                        line[idx] = line[idx].lstrip('"')
-
-                        trans_dict[info_dict_keys[idx]] = line[idx]
-
-                    new_transaction = Transaction(trans_dict)
-                    transactions.append(new_transaction)
-
-    return transactions
-
-
-# NEED TO ADD TRANSACTIONS DESCRIPTORS TO CONFIG FILE
-# Create a configuration file to store the
-def write_config_file(force=False):
-    config = {}
-    config_dir = APP_DIR + '/config'
-    config_file_name = config_dir + '/budget.conf'
-
-    if not os.path.exists(config_dir):
-        os.makedirs(config_dir)
-
-    elif os.path.isfile(config_file_name) and not force:
-        print "Application already configured"
-        return
-
-    config['num'] = raw_input('Number of accounts: ')
-
-    for idx in range(int(config['num'])):
-        config['id' + str(idx)] = raw_input('Enter account identifier {}: '.format(str(idx)))
-
-    open_file = open(config_file_name, 'w')
-
-    for key in config:
-        open_file.write('{} {}\n'.format(key, config[key]))
-
-    open_file.close()
-
-
-def read_config_file():
-    config = {}
-    ids = list()
-    config_dir = APP_DIR + '/config'
-    config_file_name = config_dir + '/budget.conf'
-
-    with open(config_file_name, 'r') as conf_file:
-
-        for line in conf_file:
-            line = line.split()
-            config[line[0]] = line[1]
-
-    for idx in range(int(config['num'])):
-        ids.append(config['id'+str(idx)])
-
-    return ids
-
-
-def main():
-    write_config_file()
-    transactions = open_transactions()
-    cal = Calendar()
-    cal.update_cal(transactions)
-    cal.complete_calendar()
-    cal.update_running_bal(True)
-    cal.print_calendar()
-    # cal.save_calendar()
-    # cal.days['2018-02-08'].print_date()
-
-
-if __name__ == "__main__":
-    main()
