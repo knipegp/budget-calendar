@@ -1,63 +1,64 @@
 import os
-import subprocess
-import re
-import transaction
+import json
 
 
 class AppConfiguration:
 
     def __init__(self, app_name, force_write=False):
-        self.app_dir = os.path.dirname(os.path.realpath(__file__))
-        self.trans_iden = {}
-        self.config_dir = self.app_dir + '/.config'
-        self.config_file = self.config_dir + '/{}.conf'.format(str(app_name))
-        self.acc_num = 0
-        self.acc_iden = None
-        self.acc_trans_descriptors = {}
+        self.app_directory = os.path.dirname(os.path.realpath(__file__))
+        self.config_directory = self.app_directory + '/.config'
+        self.config_file = self.config_directory + '/{}.json'.format(str(app_name))
 
-        if not os.path.exists(self.config_dir) or force_write:
-            os.makedirs(self.config_dir)
+        self.config = {}
+
+        if not os.path.exists(self.config_directory):
+            os.makedirs(self.config_directory)
+
+        if not os.path.isfile(self.config_file) or force_write:
             self.create_config(force_write)
+            self.write_config()
 
-        elif os.path.isfile(self.config_file):
+        else:
             print "Application already configured"
-            self.read_config_file()
+            self.get_config()
             return
 
     # Create a configuration file to store the
     def create_config(self, force=False):
-        config = {}
 
-        if not os.path.exists(self.config_dir):
-            os.makedirs(self.config_dir)
+        if not os.path.exists(self.config_directory):
+            os.makedirs(self.config_directory)
 
         elif os.path.isfile(self.config_file) and not force:
             print "Application already configured"
             return
 
-        config['num'] = raw_input('Number of accounts: ')
+        user_input = ' '
+        self.config['accounts'] = list()
+        while user_input:
+            print 'Enter account identifier.'
+            user_input = raw_input('Press return to quit: ')
 
-        for idx in range(int(config['num'])):
-            config['id' + str(idx)] = raw_input('Enter account identifier {}: '.format(str(idx)))
+            if user_input:
+                self.config['accounts'].append(user_input)
 
-        open_file = open(self.config_file, 'w')
+            while not user_input:
+                user_input = raw_input('Are {} correct? [y/n]: '.format(self.config['accounts']))
 
-        for key in config:
-            open_file.write('{} {}\n'.format(key, config[key]))
+                if user_input in ['n', 'N']:
+                    self.config['accounts'] = list()
+                elif user_input not in ['n', 'N', 'y', 'Y']:
+                    user_input = ''
 
-        open_file.close()
+            if user_input in ['y', 'Y']:
+                break
 
-    def read_config_file(self):
-        config = {}
-        ids = list()
+    def write_config(self):
 
-        with open(self.config_file, 'r') as conf_file:
+        with open(self.config_file, 'w') as config_json:
+            json.dump(self.config, config_json)
 
-            for line in conf_file:
-                line = line.split()
-                config[line[0]] = line[1]
+    def get_config(self):
 
-        for idx in range(int(config['num'])):
-            ids.append(config['id'+str(idx)])
-
-        self.acc_iden = ids
+        with open(self.config_file) as config_json:
+            self.config = json.load(config_json)

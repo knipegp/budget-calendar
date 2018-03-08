@@ -77,10 +77,12 @@ class Calendar:
 
             curr_day = str(curr_day_obj + date_diff)
 
-    # Add
+    # Add transactions to the calendar and update the necessary values
     def update_cal(self, transactions):
+        # Need to account for when only 1 transaction is passed
         trans = list()
-        trans.append(transactions)
+        trans = trans + transactions
+
         for tran in trans:
 
             if str(tran.date) not in self.days:
@@ -90,6 +92,7 @@ class Calendar:
 
         self.complete_calendar()
         self.update_running_bal(True)
+        self.config.write_config()
 
     def str_to_obj(self, date_str):
         year, month, day = date_str.split('-')
@@ -112,7 +115,7 @@ class Calendar:
 
     # Write the calendar and all contents to a single file
     def save_calendar(self):
-        calendar_save = open(self.config.app_dir + '/calendar_save.txt', 'w')
+        calendar_save = open(self.config.app_directory + '/calendar_save.txt', 'w')
 
         calendar_text = self.print_calendar(output=False)
         calendar_save.write(calendar_text)
@@ -157,16 +160,16 @@ class Calendar:
     # Retrieve all new transactions from files in the given directory. Return a
     # list of transaction objects
     def open_transactions(self):
-        transaction_dir = self.config.app_dir + '/transactions'
+        transactions = list()
+        transaction_dir = self.config.app_directory + '/transactions'
         files_in_dir = subprocess.check_output(['ls', transaction_dir]).split()
-        acc_ids = self.config.acc_iden
 
         for transaction_file_name in files_in_dir:
             path_name = transaction_dir + '/' + transaction_file_name
             account = None
             begin_read = False
 
-            for iden in acc_ids:
+            for iden in self.config.config['accounts']:
 
                 if iden in path_name:
                     account = iden
@@ -185,13 +188,16 @@ class Calendar:
                     if 'Date' in line[0] and not begin_read:
                         line[0] = 'Date'
                         begin_read = True
-                        self.config.trans_iden[account] = line
+                        # self.config.config['transaction_descriptors'][account] = {}
+                        self.config.config['transaction_descriptors'][account] = line
                         continue
 
                     if begin_read:
-                        trans_cfg = {'Account': account, 'info_dict_keys': self.config.trans_iden[account]}
+                        trans_cfg = {'Account': account, 'info_dict_keys': self.config.config['transaction_descriptors'][account]}
                         tran = transaction.Transaction(trans_cfg, line, new_transaction_info={})
-                        self.update_cal(tran)
+                        transactions.append(tran)
+
+        self.update_cal(transactions)
 
 
 # An object that stores a list of transaction objects
