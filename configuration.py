@@ -9,7 +9,8 @@ class AppConfiguration:
         self.config_directory = self.app_directory + '/.config'
         self.config_file = self.config_directory + '/{}.json'.format(str(app_name))
 
-        self.config = {}
+        self.app_dictionary = dict()
+        self.app_dictionary['transaction_descriptors'] = {}
 
         if not os.path.exists(self.config_directory):
             os.makedirs(self.config_directory)
@@ -19,7 +20,6 @@ class AppConfiguration:
             self.write_config()
 
         else:
-            print "Application already configured"
             self.get_config()
             return
 
@@ -33,32 +33,84 @@ class AppConfiguration:
             print "Application already configured"
             return
 
-        user_input = ' '
-        self.config['accounts'] = list()
-        while user_input:
-            print 'Enter account identifier.'
-            user_input = raw_input('Press return to quit: ')
-
-            if user_input:
-                self.config['accounts'].append(user_input)
-
-            while not user_input:
-                user_input = raw_input('Are {} correct? [y/n]: '.format(self.config['accounts']))
-
-                if user_input in ['n', 'N']:
-                    self.config['accounts'] = list()
-                elif user_input not in ['n', 'N', 'y', 'Y']:
-                    user_input = ''
-
-            if user_input in ['y', 'Y']:
-                break
+        self.app_dictionary['accounts'] = get_free_answer('Enter account identifier: ', 0)
 
     def write_config(self):
 
         with open(self.config_file, 'w') as config_json:
-            json.dump(self.config, config_json)
+            json.dump(self.app_dictionary, config_json)
 
     def get_config(self):
 
         with open(self.config_file) as config_json:
-            self.config = json.load(config_json)
+            self.app_dictionary.update(json.load(config_json))
+
+    def add_account(self, account):
+
+        default_descriptors = ['Name', 'Description', 'Amount']
+        self.app_dictionary['accounts'].append(account)
+
+        print 'Default transaction descriptors: {}'.format(default_descriptors)
+        ans = get_binary_answer('Use default transaction descriptors for account {}?'.format(account))
+
+        if not ans:
+            ans = get_free_answer('Enter account transaction descriptor: '.format(default_descriptors), 0)
+            self.app_dictionary['transaction_descriptors'][account] = ans
+        else:
+            self.app_dictionary['transaction_descriptors'][account] = default_descriptors
+
+
+def get_free_answer(prompt, responses=1, possible_responses=list()):
+    ret = list()
+    loop = False
+    question = 0
+
+    if responses < 1:
+        print 'Hit return when all responses have been entered.'
+        loop = True
+        responses = 1
+
+    while question < responses:
+        response = raw_input(prompt)
+        ret.append(response)
+
+        # Need to make this a regular expression match to be more flexible
+        while possible_responses and response not in possible_responses:
+            response = raw_input(prompt)
+
+        if loop and response:
+            question = 0
+
+        elif not response and loop:
+            ret = ret[:-1]
+
+            ans = get_binary_answer('Is {} correct?')
+
+            if ans:
+                break
+            else:
+                ret = list()
+
+        elif responses == 1:
+            ret = response
+
+    return ret
+
+def get_binary_answer(prompt):
+    ans = ' '
+    possible_ans = ['y', 'Y', 'n', 'N']
+
+    while ans not in possible_ans:
+        ans = raw_input(prompt + ' [y,n]: ')
+
+    if ans in ['y', 'Y']:
+        ret = True
+
+    else:
+        ret = False
+
+    return ret
+
+
+if __name__ == '__main__':
+    print get_free_answer('Tell ME! ', 0)

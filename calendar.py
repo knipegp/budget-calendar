@@ -50,9 +50,9 @@ class Calendar:
 
                     for transaction in self.days[curr_day].account_trans[acc]:
                         try:
-                            if 'Beginning balance' in transaction.transaction_info['Description']:
+                            if 'Beginning balance' in transaction.data['Description']:
 
-                                self.days[curr_day].account_running_bal[acc] = round(float(transaction.transaction_info['Running Bal.']), 2)\
+                                self.days[curr_day].account_running_bal[acc] = round(float(transaction.data['Running Bal.']), 2)\
                                                                                + self.days[curr_day].account_totals[acc]
                                 break
                         except:
@@ -169,7 +169,7 @@ class Calendar:
             account = None
             begin_read = False
 
-            for iden in self.config.config['accounts']:
+            for iden in self.config.app_dictionary['accounts']:
 
                 if iden in path_name:
                     account = iden
@@ -188,16 +188,43 @@ class Calendar:
                     if 'Date' in line[0] and not begin_read:
                         line[0] = 'Date'
                         begin_read = True
-                        # self.config.config['transaction_descriptors'][account] = {}
-                        self.config.config['transaction_descriptors'][account] = line
+                        self.config.app_dictionary['transaction_descriptors'][account] = line
                         continue
 
                     if begin_read:
-                        trans_cfg = {'Account': account, 'info_dict_keys': self.config.config['transaction_descriptors'][account]}
-                        tran = transaction.Transaction(trans_cfg, line, new_transaction_info={})
+                        tran = transaction.Transaction(account, line)
                         transactions.append(tran)
 
         self.update_cal(transactions)
+
+    def add_new_transaction(self):
+        new_transactions = list()
+        # Ask to pick which account
+        print 'Possible accounts: {}'.format(self.config.app_dictionary['accounts'])
+        possible_answers = self.config.app_dictionary['accounts'] + 'new'
+        account = configuration.get_free_answer('Choose an account to add the transaction or enter new? [account/new]: ', 0, possible_answers)
+
+        if account == 'new':
+            account = configuration.get_free_answer('Enter new account name: ', 1)
+
+        tran = transaction.Transaction(account)
+        new_transactions.append(tran)
+
+        # Create repeated transactions
+        ans = configuration.get_binary_answer('Does this transaction repeat?')
+
+        # Need to make the date repeating more intelligent
+        if ans:
+            dates = configuration.get_free_answer('Enter repeat date: [yyyy/mm/dd]', 0)
+
+            for date in dates:
+                new_date = date.split('/')
+
+
+        self.update_cal(new_transactions)
+
+
+
 
 
 # An object that stores a list of transaction objects
@@ -218,23 +245,23 @@ class Day:
             return False
 
         # Add the account to that date if it does not exist
-        if tran.transaction_info['Account'] not in self.account_trans:
-            self.account_trans[tran.transaction_info['Account']] = list()
-            self.account_totals[tran.transaction_info['Account']] = 0.00
+        if tran.data['Account'] not in self.account_trans:
+            self.account_trans[tran.data['Account']] = list()
+            self.account_totals[tran.data['Account']] = 0.00
 
             #IDEA: update the running balance here? Not set on this
-            self.account_running_bal[tran.transaction_info['Account']] = 0.00
+            self.account_running_bal[tran.data['Account']] = 0.00
 
         # Skip transactions that have already been added
         else:
-            for existing_transaction in self.account_trans[tran.transaction_info['Account']]:
+            for existing_transaction in self.account_trans[tran.data['Account']]:
 
-                if tran.transaction_info == existing_transaction.transaction_info:
+                if tran.data == existing_transaction.data:
 
                     return False
 
-        self.account_trans[tran.transaction_info['Account']].append(tran)
-        self.account_totals[tran.transaction_info['Account']] += round(float(tran.transaction_info['Amount']), 2)
+        self.account_trans[tran.data['Account']].append(tran)
+        self.account_totals[tran.data['Account']] += round(float(tran.data['Amount']), 2)
 
         return True
 
