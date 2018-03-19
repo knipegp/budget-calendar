@@ -1,5 +1,6 @@
 import os
 import json
+import csv
 
 
 class AppConfiguration:
@@ -96,6 +97,7 @@ def get_free_answer(prompt, responses=1, possible_responses=list()):
 
     return ret
 
+
 def get_binary_answer(prompt):
     ans = ' '
     possible_ans = ['y', 'Y', 'n', 'N']
@@ -110,6 +112,54 @@ def get_binary_answer(prompt):
         ret = False
 
     return ret
+
+
+def get_csv_dict_reader(self, file_name, keys=list(), keyword='date'):
+    account = None
+    begin_read = False
+
+    for iden in self.config.app_dictionary['accounts']:
+
+        if iden in file_name:
+            account = iden
+            break
+
+    if not account:
+        raise ValueError('Filename does not match a known account')
+
+    with open(file_name, 'rb') as csvfile:
+
+        if account not in self.config.app_dictionary['transaction_descriptors']:
+            csv_reader = csv.reader(csvfile)
+
+            for row in csv_reader:
+
+                if 'Date' in row:
+
+        csv_reader = csv.DictReader(csvfile, self.config.app_dictionary['transaction_descriptors'][account])
+
+
+def get_csv_keys(file_name, keyword):
+    keys = None
+
+    with open(file_name, 'rb') as csvfile:
+        csv_reader = csv.reader(csvfile)
+
+        for row in csv_reader:
+
+            for element in row:
+
+                if keyword.lower() in element.lower():
+                    keys = row
+                    break
+
+            if keys:
+                break
+
+    if not keys:
+        raise Exception('Could not find keys for {}'.format(file_name))
+
+    return keys
 
 
 if __name__ == '__main__':
