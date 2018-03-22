@@ -1,11 +1,14 @@
 import datetime
 import logging
 import configuration
+import jsonpickle
+# TODO: Budget calendar needs to go
+import budget_calendar
 
 
 # A calendar which stores Day objects and maintains the relationship of
 # balances between each day
-class Calendar:
+class Calendar(object):
 
     def __init__(self, app_name='calendar_application'):
         # Key: date     Value: Day objectround
@@ -70,7 +73,8 @@ class Calendar:
 
             if curr_date not in self.days:
                 year, month, day = curr_date.split('-')
-                self.days[curr_date] = Day(datetime.date(int(year), int(month), int(day)))
+                # TODO: Budget day needs to go
+                self.days[curr_date] = budget_calendar.BudgetDay(datetime.date(int(year), int(month), int(day)))
 
             year, month, day = curr_date.split('-')
             temp_date = datetime.date(int(year), int(month), int(day))
@@ -78,7 +82,7 @@ class Calendar:
 
 
 # An object that stores a list of transaction objects
-class Day:
+class Day(object):
 
     def __init__(self, date):
         self.date = date

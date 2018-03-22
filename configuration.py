@@ -114,29 +114,29 @@ def get_binary_answer(prompt):
     return ret
 
 
-def get_csv_dict_reader(self, file_name, keys=list(), keyword='date'):
-    account = None
-    begin_read = False
-
-    for iden in self.config.app_dictionary['accounts']:
-
-        if iden in file_name:
-            account = iden
-            break
-
-    if not account:
-        raise ValueError('Filename does not match a known account')
-
-    with open(file_name, 'rb') as csvfile:
-
-        if account not in self.config.app_dictionary['transaction_descriptors']:
-            csv_reader = csv.reader(csvfile)
-
-            for row in csv_reader:
-
-                if 'Date' in row:
-
-        csv_reader = csv.DictReader(csvfile, self.config.app_dictionary['transaction_descriptors'][account])
+# def get_csv_dict_reader(self, file_name, keys=list(), keyword='date'):
+#     account = None
+#     begin_read = False
+#
+#     for iden in self.config.app_dictionary['accounts']:
+#
+#         if iden in file_name:
+#             account = iden
+#             break
+#
+#     if not account:
+#         raise ValueError('Filename does not match a known account')
+#
+#     with open(file_name, 'rb') as csvfile:
+#
+#         if account not in self.config.app_dictionary['transaction_descriptors']:
+#             csv_reader = csv.reader(csvfile)
+#
+#             for row in csv_reader:
+#
+#                 if 'Date' in row:
+#
+#         csv_reader = csv.DictReader(csvfile, self.config.app_dictionary['transaction_descriptors'][account])
 
 
 def get_csv_keys(file_name, keyword):

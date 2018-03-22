@@ -4,6 +4,7 @@ import datetime
 import transaction
 import os
 import logging
+import re
 
 
 class BudgetCalendar(calendar.Calendar):
@@ -97,6 +98,8 @@ class BudgetCalendar(calendar.Calendar):
 
         self.update_cal(new_transactions)
 
+    # Retrieve all new transactions from files in the given directory. Return a
+    # list of transaction objects
     def open_transactions(self):
         transactions = list()
         transaction_dir = self.config.app_directory + '/transactions'
@@ -104,7 +107,37 @@ class BudgetCalendar(calendar.Calendar):
 
         for transaction_file_name in files_in_dir:
             path_name = transaction_dir + '/' + transaction_file_name
-            transactions.append(self.get_csv_transactions(path_name))
+            account = None
+            begin_read = False
+
+            for iden in self.config.app_dictionary['accounts']:
+
+                if iden in path_name:
+                    account = iden
+                    break
+
+            if not account:
+                # TODO: Don't raise error. Add to logger instead.
+                raise ValueError('Filename does not match a known account')
+
+            with open(path_name) as transactions_file:
+
+                for line in transactions_file:
+                    line = line.rstrip('\r\n')
+                    line = re.sub('(?<=[A-Z])(,)(?=[A-Z\s])', ' ', line)
+                    line = line.split(',')
+
+                    if 'Date' in line[0] and not begin_read:
+                        line[0] = 'Date'
+                        begin_read = True
+                        self.config.app_dictionary['transaction_descriptors'][account] = line
+                        continue
+
+                    if begin_read:
+                        tran = transaction.Transaction(account, line)
+                        transactions.append(tran)
+
+        self.update_cal(transactions)
 
     # Add transactions to the calendar and update the necessary values
     def update_cal(self, transactions):
@@ -115,7 +148,7 @@ class BudgetCalendar(calendar.Calendar):
         for tran in trans:
 
             if str(tran.date) not in self.days:
-                self.days[str(tran.date)] = Day(tran.date)
+                self.days[str(tran.date)] = BudgetDay(tran.date)
 
             self.days[str(tran.date)].add_transaction(tran)
 
@@ -129,11 +162,11 @@ class BudgetDay(calendar.Day):
     ''' TODO: All of day data should be in a single dictionary to make it easier for the super to handle
     different types of applications without much overhead
     '''
-    def __init__(self):
+    def __init__(self, date):
         self.account_trans = {}
         self.account_totals = {}
         self.account_running_bal = {}
-        super(BudgetDay, self).__init__()
+        super(BudgetDay, self).__init__(date)
 
     # Add a transaction to the current date
     def add_transaction(self, tran):
@@ -148,7 +181,7 @@ class BudgetDay(calendar.Day):
             self.account_trans[tran.data['Account']] = list()
             self.account_totals[tran.data['Account']] = 0.00
 
-            #IDEA: update the running balance here? Not set on this
+            #TODO: update the running balance here? Not set on this
             self.account_running_bal[tran.data['Account']] = 0.00
 
         # Skip transactions that have already been added

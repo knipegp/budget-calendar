@@ -9,7 +9,7 @@ class Transaction:
         self.data = dict()
 
         self.data['Account'] = account
-        self.config = configuration.AppConfiguration('budget-calendar')
+        self.config = configuration.AppConfiguration('budget_calendar')
 
         # Add the transaction descriptors to the transaction if the account already exists
         try:
