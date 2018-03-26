@@ -1,9 +1,6 @@
 import datetime
-import logging
 import configuration
 import jsonpickle
-# TODO: Budget calendar needs to go
-import budget_calendar
 
 
 # A calendar which stores Day objects and maintains the relationship of
@@ -18,89 +15,64 @@ class Calendar(object):
         self.application_name = app_name
         self.config = configuration.AppConfiguration(self.application_name)
 
+    def get_previous_day_obj(self, day_str):
+        ''' Get the previous day for the given day_str.
+
+        :param day_str: Date key to reference Day object in self.days.
+        :return: A Day obj for the previous day to the day_str. None
+                 if previous day does not exist in dictionary.
+        '''
+
+        date_diff = datetime.timedelta(days=1)
+        prev_day_str = str(self.str_to_obj(day_str) - date_diff)
+
+        if prev_day_str not in self.days:
+            prev_day_str = None
+
+            for day in sorted(self.days):
+
+                if day >= day_str:
+                    break
+
+                prev_day_str = day
+
+        if prev_day_str:
+            prev_day_obj = self.days[prev_day_str]
+        else:
+            prev_day_obj = None
+
+        return prev_day_obj
+
     def str_to_obj(self, date_str, delimeter='-'):
         year, month, day = date_str.split(delimeter)
         date_obj = datetime.date(int(year), int(month), int(day))
         return date_obj
 
     def print_calendar(self, output=True):
-        date_diff = datetime.timedelta(days=1)
-        curr_day = self.first_day
-        save_text = ''
 
-        while curr_day <= self.last_day:
-            save_text += self.days[curr_day].print_date()
-            date_obj = self.str_to_obj(curr_day)
-            curr_day = str(date_obj + date_diff)
+        for day in sorted(self.days):
+            current_day_obj = self.days[day]
+            current_day_obj.print_day()
 
-        if output:
-            print save_text
-        return save_text
-
-    # Write the calendar and all contents to a single file
-    # TODO: Should this change to a json?
-    # Or the entire calendar could be written to csv form and each account could have its own csv?
     def save_calendar(self):
-        calendar_save = open(self.config.app_directory + '/calendar_save.txt', 'w')
+        file_name = self.config.app_directory + '/calendar_save.json'
+        jsonpickle.set_encoder_options('simplejson', sort_keys=True, indent=4)
+        json_str = jsonpickle.encode(self.days)
 
-        calendar_text = self.print_calendar(output=False)
-        calendar_save.write(calendar_text)
-        calendar_save.close()
-
-    def complete_calendar(self):
-        self.first_day = min(self.days)
-        year, month, day = self.first_day.split('-')
-        temp_date = datetime.date(int(year), int(month), 1)
-        self.first_day = str(temp_date)
-
-        self.last_day = max(self.days)
-        year, month, day = self.last_day.split('-')
-        month = int(month) + 1
-        day = 1
-
-        if month == 13:
-            month = 1
-            year = int(year) + 1
-
-        date_diff = datetime.timedelta(days=1)
-        temp_date = datetime.date(int(year), int(month), int(day))
-
-        self.last_day = str(temp_date - date_diff)
-
-        curr_date = self.first_day
-
-        while curr_date <= self.last_day:
-
-            if curr_date not in self.days:
-                year, month, day = curr_date.split('-')
-                # TODO: Budget day needs to go
-                self.days[curr_date] = budget_calendar.BudgetDay(datetime.date(int(year), int(month), int(day)))
-
-            year, month, day = curr_date.split('-')
-            temp_date = datetime.date(int(year), int(month), int(day))
-            curr_date = str(temp_date + date_diff)
+        with open(file_name, 'w') as json_file:
+            json_file.write(json_str)
 
 
-# An object that stores a list of transaction objects
-class Day(object):
+    # Update the running balance of each account of each day based on the
+    # transactions added to each day of the calendar
+    def update_running_bal(self):
+        '''
+        Update the running balances for all Day objects in the calendar.
+        :return: 0 if the function executes without errors.
+                 1 if the function executes with an error.
+        '''
 
-    def __init__(self, date):
-        self.date = date
-
-    def print_date(self):
-        save_text = ''
-        save_text += '\nDate,' + str(self.date)
-
-        # TODO: The account, daily total, running total string needs to go away to make this module portable to
-        # other apps
-        for key in self.account_totals:
-            save_text += "\n    Account,{}//Daily Total,{}//Running Total,{}".format(key,
-                                                                      self.account_totals[key],
-                                                                      self.account_running_bal[key])
-
-            if key in self.account_trans:
-
-                for transaction in self.account_trans[key]:
-                    save_text += transaction.print_transaction()
-
-        return save_text
+        for day in sorted(self.days):
+            previous_day_obj = self.get_previous_day_obj(day)
+            current_day_obj = self.days[day]
+            current_day_obj.update_running_bal(previous_day_obj)

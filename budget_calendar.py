@@ -1,6 +1,7 @@
 import configuration
 import calendar
 import datetime
+import day
 import transaction
 import os
 import logging
@@ -11,66 +12,6 @@ class BudgetCalendar(calendar.Calendar):
 
     def __init__(self):
         super(BudgetCalendar, self).__init__('budget_calendar')
-
-    # Update the running balance of each account of each day based on the
-    # transactions added to each day of the calendar
-    def update_running_bal(self, use_first=False, start_day=None):
-
-        # The calendar could use the first day of the first month but that day
-        # may not actually have any transactions
-        if use_first:
-            start_day = self.first_day
-
-        assert start_day is not None, 'Specify start day or use self.first_day'
-
-        # Need a timedelta object to iterate days
-        date_diff = datetime.timedelta(days=1)
-        curr_day = start_day
-
-        # Iterate over all days in the calendar
-        while curr_day <= self.last_day:
-
-            # Get the string of the previous day
-            curr_day_obj = self.str_to_obj(curr_day)
-            prev_day = str(curr_day_obj - date_diff)
-
-            for acc in self.days[curr_day].account_totals:
-
-                # If starting from the first day
-                # or the account exists in current_day and not in prev_day
-                if curr_day == self.first_day\
-                        or acc not in self.days[prev_day].account_running_bal\
-                        and acc in self.days[curr_day].account_totals:
-                    # if acc == 'checkings':
-
-                    for transaction in self.days[curr_day].account_trans[acc]:
-                        try:
-                            if 'Beginning balance' in transaction.data['Description']:
-
-                                self.days[curr_day].account_running_bal[acc] = round(float(transaction.data['Running Bal.']), 2)\
-                                                                               + self.days[curr_day].account_totals[acc]
-                                break
-                        except:
-                            self.days[curr_day].account_running_bal[acc] = self.days[curr_day].account_totals[acc]
-                            break
-                # If acc in curr and in prev
-                else:
-                    self.days[curr_day].account_running_bal[acc] = self.days[curr_day].account_totals[acc]\
-                                                                   + self.days[prev_day].account_running_bal[acc]
-
-            # Can only update balances if yesterday exists
-            if curr_day != self.first_day:
-
-                for acc in self.days[prev_day].account_totals:
-
-                    # If acc in prev but not in curr
-                    if acc in self.days[prev_day].account_running_bal\
-                            and acc not in self.days[curr_day].account_totals:
-
-                        self.days[curr_day].account_running_bal[acc] = self.days[prev_day].account_running_bal[acc]
-                        self.days[curr_day].account_totals[acc] = 0.00
-
-            curr_day = str(curr_day_obj + date_diff)
 
     def add_new_transaction(self):
         new_transactions = list()
@@ -100,6 +41,7 @@ class BudgetCalendar(calendar.Calendar):
 
     # Retrieve all new transactions from files in the given directory. Return a
     # list of transaction objects
+    # TODO: add open_transactions to parent class and make compatible with generic csvs
     def open_transactions(self):
         transactions = list()
         transaction_dir = self.config.app_directory + '/transactions'
@@ -148,54 +90,12 @@ class BudgetCalendar(calendar.Calendar):
         for tran in trans:
 
             if str(tran.date) not in self.days:
-                self.days[str(tran.date)] = BudgetDay(tran.date)
+                self.days[str(tran.date)] = day.Day(tran.date)
 
             self.days[str(tran.date)].add_transaction(tran)
 
-        self.complete_calendar()
-        self.update_running_bal(True)
+        self.update_running_bal()
         self.config.write_config()
-
-
-class BudgetDay(calendar.Day):
-
-    ''' TODO: All of day data should be in a single dictionary to make it easier for the super to handle
-    different types of applications without much overhead
-    '''
-    def __init__(self, date):
-        self.account_trans = {}
-        self.account_totals = {}
-        self.account_running_bal = {}
-        super(BudgetDay, self).__init__(date)
-
-    # Add a transaction to the current date
-    def add_transaction(self, tran):
-
-        # Check that transaction is being added to the correct date object
-        if tran.date != self.date:
-            logging.debug("Transaction date {} does not match Day date {}.".format(tran.date, self.date))
-            return False
-
-        # Add the account to that date if it does not exist
-        if tran.data['Account'] not in self.account_trans:
-            self.account_trans[tran.data['Account']] = list()
-            self.account_totals[tran.data['Account']] = 0.00
-
-            #TODO: update the running balance here? Not set on this
-            self.account_running_bal[tran.data['Account']] = 0.00
-
-        # Skip transactions that have already been added
-        else:
-            for existing_transaction in self.account_trans[tran.data['Account']]:
-
-                if tran.data == existing_transaction.data:
-
-                    return False
-
-        self.account_trans[tran.data['Account']].append(tran)
-        self.account_totals[tran.data['Account']] += round(float(tran.data['Amount']), 2)
-
-        return True
 
 
 def main():
