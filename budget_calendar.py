@@ -36,50 +36,7 @@ class BudgetCalendar(calendar.Calendar):
             for date in dates:
                 new_date = date.split('/')
 
-
         self.update_cal(new_transactions)
-
-    # Retrieve all new transactions from files in the given directory. Return a
-    # list of transaction objects
-    # TODO: add open_transactions to parent class and make compatible with generic csvs
-    def open_transactions(self):
-        transactions = list()
-        transaction_dir = self.config.app_directory + '/transactions'
-        files_in_dir = os.listdir(transaction_dir)
-
-        for transaction_file_name in files_in_dir:
-            path_name = transaction_dir + '/' + transaction_file_name
-            account = None
-            begin_read = False
-
-            for iden in self.config.app_dictionary['accounts']:
-
-                if iden in path_name:
-                    account = iden
-                    break
-
-            if not account:
-                # TODO: Don't raise error. Add to logger instead.
-                raise ValueError('Filename does not match a known account')
-
-            with open(path_name) as transactions_file:
-
-                for line in transactions_file:
-                    line = line.rstrip('\r\n')
-                    line = re.sub('(?<=[A-Z])(,)(?=[A-Z\s])', ' ', line)
-                    line = line.split(',')
-
-                    if 'Date' in line[0] and not begin_read:
-                        line[0] = 'Date'
-                        begin_read = True
-                        self.config.app_dictionary['transaction_descriptors'][account] = line
-                        continue
-
-                    if begin_read:
-                        tran = transaction.Transaction(account, line)
-                        transactions.append(tran)
-
-        self.update_cal(transactions)
 
     # Add transactions to the calendar and update the necessary values
     def update_cal(self, transactions):

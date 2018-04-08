@@ -9,14 +9,25 @@ class Day(object):
         self.data['transactions_per_account'] = {}
         self.data['running_balance_per_account'] = {}
 
-    def print_day(self):
+    def __str__(self):
         print_str = ''
-        print_str += '\nDate,' + str(self.date)
+        print_str += '\nDate,' + str(self.date) + '\n'
 
         for key in self.data:
-            print_str += '\n   {}: {}'.format(key, self.data[key])
 
-        print print_str
+            if key == 'transactions_per_account':
+
+                for account in self.data[key]:
+
+                    for transaction in self.data[key][account]:
+                        print_str += transaction.__str__()
+                        print_str += '\n'
+
+            else:
+                print_str += '{}: {}\n'.format(key, self.data[key])
+
+        print_str = print_str[:-2]
+
         return print_str
 
     def update_running_bal(self, previous_day_obj):
@@ -31,20 +42,7 @@ class Day(object):
         current_transactions = self.data['transactions_per_account']
         current_running_balances = self.data['running_balance_per_account']
 
-        if not previous_day_obj:
-
-            for account in current_transactions:
-
-                for transaction in current_transactions[account]:
-
-                    # TODO: This is bad. Find new way to initialize running Bal
-                    if 'Running Bal.' in transaction.data:
-                        current_running_balances[account] = transaction.data['Running Bal.']
-                        break
-                    else:
-                        current_running_balances[account] = '0.00'
-
-        else:
+        if previous_day_obj:
             previous_running_balance = previous_day_obj.data['running_balance_per_account']
 
             # Add accounts to running balance if they exist in the previous
@@ -72,7 +70,7 @@ class Day(object):
     def add_transaction(self, tran):
 
         # Check that transaction is being added to the correct date object
-        if tran.date != self.date:
+        if tran.data['Date'] != self.date:
             return 1
 
         # Add the account to that date if it does not exist

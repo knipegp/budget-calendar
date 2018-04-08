@@ -1,6 +1,10 @@
 import datetime
 import configuration
 import jsonpickle
+import os
+import csv
+import transaction
+import day
 
 
 # A calendar which stores Day objects and maintains the relationship of
@@ -24,7 +28,7 @@ class Calendar(object):
         '''
 
         date_diff = datetime.timedelta(days=1)
-        prev_day_str = str(self.str_to_obj(day_str) - date_diff)
+        prev_day_str = str(configuration.str_to_obj(day_str) - date_diff)
 
         if prev_day_str not in self.days:
             prev_day_str = None
@@ -43,16 +47,12 @@ class Calendar(object):
 
         return prev_day_obj
 
-    def str_to_obj(self, date_str, delimeter='-'):
-        year, month, day = date_str.split(delimeter)
-        date_obj = datetime.date(int(year), int(month), int(day))
-        return date_obj
+
 
     def print_calendar(self, output=True):
-
         for day in sorted(self.days):
             current_day_obj = self.days[day]
-            current_day_obj.print_day()
+            print current_day_obj
 
     def save_calendar(self):
         file_name = self.config.app_directory + '/calendar_save.json'
@@ -72,7 +72,88 @@ class Calendar(object):
                  1 if the function executes with an error.
         '''
 
-        for day in sorted(self.days):
-            previous_day_obj = self.get_previous_day_obj(day)
-            current_day_obj = self.days[day]
+        for day_str in sorted(self.days):
+            previous_day_obj = self.get_previous_day_obj(day_str)
+            current_day_obj = self.days[day_str]
             current_day_obj.update_running_bal(previous_day_obj)
+
+    # Retrieve all new transactions from files in the given directory. Return a
+    # list of transaction objects
+    def open_transactions(self):
+        transactions_list = list()
+        transaction_dir = self.config.app_directory + '/transactions'
+        files_in_dir = os.listdir(transaction_dir)
+
+        for transaction_file_name in files_in_dir:
+            transactions_list += self.read_new_csv(transaction_file_name)
+
+        if transactions_list:
+            self.add_transactions(transactions_list)
+
+    # TODO: Should the header be stored in the configuration file?
+    # Should each file check that it matches the known header?
+    #
+    def read_new_csv(self, csv_file_name):
+        start_read = False
+        header = list()
+        new_transactions_list = list()
+
+        with open(csv_file_name, 'r') as csvfile:
+            csvreader = csv.reader(csvfile)
+            file_account = None
+            for account in self.config.app_dictionary['accounts']:
+
+                if account in csv_file_name:
+                    file_account = account
+
+            if not file_account:
+                raise NotImplementedError('{} not valid account.'.format(file_account))
+
+            for row in csvreader:
+                transaction_data = {}
+
+                if not start_read and len(row) > 3:
+                    header = row
+                    start_read = True
+
+                elif header:
+
+                    for idx, key in enumerate(header):
+                        # TODO: This should live in add_standard_keys
+                        if not row[idx]:
+                            transaction_data[key] = '0.00'
+                        else:
+                            transaction_data[key] = row[idx]
+
+                    transaction_data = self.add_standard_keys(file_account, transaction_data)
+                    new_transaction = transaction.Transaction(file_account, transaction_data)
+                    new_transactions_list.append(new_transaction)
+
+        return new_transactions_list
+
+    def add_standard_keys(self, account, transaction_dict):
+
+        for key in transaction_dict:
+            if 'Date' in key:
+                new_date = transaction_dict.pop(key)
+                new_date_obj = configuration.correct_date(new_date)
+                transaction_dict['Date'] = new_date_obj.isoformat()
+                break
+
+        transaction_dict['Account'] = account
+
+        return transaction_dict
+
+    def add_transactions(self, transactions):
+        # Ensures that a transactions is iterable
+        transactions = list(transactions)
+
+        for new_transaction in transactions:
+            current_date = new_transaction.data['Date']
+
+            if not current_date in self.days:
+                self.days[current_date] = day.Day(current_date)
+
+            self.days[current_date].add_transaction(new_transaction)
+
+        self.update_running_bal()

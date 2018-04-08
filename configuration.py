@@ -1,6 +1,7 @@
 import os
 import json
 import csv
+import datetime
 
 
 class AppConfiguration:
@@ -160,6 +161,18 @@ def get_csv_keys(file_name, keyword):
         raise Exception('Could not find keys for {}'.format(file_name))
 
     return keys
+
+
+def str_to_obj(date_str, delimeter='-'):
+    year, month, day = date_str.split(delimeter)
+    date_obj = datetime.date(int(year), int(month), int(day))
+    return date_obj
+
+
+def correct_date(date_str):
+    month, day, year = date_str.split('/')
+    date_obj = datetime.date(int(year), int(month), int(day))
+    return date_obj
 
 
 if __name__ == '__main__':

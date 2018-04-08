@@ -5,64 +5,47 @@ import configuration
 # Class for transactions read from bank statements
 class Transaction:
 
-    def __init__(self, account, line=None):
+    def __init__(self, account, data_dict=None):
         self.data = dict()
 
-        self.data['Account'] = account
+        # TODO: Get rid of multiple instances of the same config
         self.config = configuration.AppConfiguration('budget_calendar')
 
         # Add the transaction descriptors to the transaction if the account already exists
         try:
             for descriptor in self.config.app_dictionary['transaction_descriptors'][account]:
                 self.data.update({descriptor: None})
-        except:
+        except KeyError:
             # Add the account to the configuration if it doesn't exist yet
-            print 'Account {} has not been instantiated.'
+            print 'Account {} has not been instantiated.'.format(account)
             self.config.add_account(account)
 
-        if line:
-            self.data['Actual'] = True
-            self.get_from_line(line, account)
-
-        elif not line:
-            self.create_transaction()
+        if data_dict:
+            self.data = data_dict
 
         else:
-            print 'Transaction passed:'
-            print 'Line: ' + str(line)
-            print 'Account: ' + str(self.config['Account'])
-            raise StandardError('Transaction not instantiated with valid information')
+            self.create_transaction()
 
-        date = self.data['Date']
-        month, day, year = date.split('/')
-        self.date = datetime.date(int(year), int(month), int(day))
+        self.date = configuration.str_to_obj(self.data['Date'])
 
-    def print_transaction(self):
-        save_text = '\n        '
-        for key in self.data:
-            save_text += key + "," + str(self.data[key]) + '//'
+    def __str__(self):
+        save_text = ''
 
-        save_text = save_text[:-2]
+        for key in sorted(self.data):
+            save_text += str(self.data[key]) + ','
+
+        save_text = save_text[:-1]
+
         return save_text
 
-    def get_from_line(self, line, account):
-        # line = line.rstrip('\r\n')
-        # line = re.sub('(?<=[A-Z])(,)(?=[A-Z\s])', ' ', line)
-        # line = line.split(',')
+    # TODO: Change to load data dictionary from csv
+    def get_from_line(self, line):
 
-        self.data['Account'] = account
-        self.data['Actual'] = True
+        if not self.data['Amount'] and self.data['Running Bal.']:
+            self.data['Amount'] = self.data['Running Bal.']
 
-        for idx in range(len(self.config.app_dictionary['transaction_descriptors'][account])):
-
-            transaction_descriptor = self.config.app_dictionary['transaction_descriptors'][account][idx]
-            if line[idx] == '':
-                line[idx] = '0.00'
-
-            line[idx] = line[idx].rstrip('"')
-            line[idx] = line[idx].lstrip('"')
-
-            self.data[transaction_descriptor] = line[idx]
+        elif not self.data['Amount']:
+            self.data['Amount'] = '0'
 
     def create_transaction(self):
 
