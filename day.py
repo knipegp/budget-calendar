@@ -52,17 +52,20 @@ class Day(object):
                 if account not in current_running_balances:
                     current_running_balances[account] = previous_running_balance[account]
 
+        # TODO: This is hacky. Needs to get fixed or moved
         for account in current_transactions:
 
-            for transaction in current_transactions[account]:
-                account = transaction.data['Account']
+                for transaction in current_transactions[account]:
+                    if account not in current_running_balances and 'Description' in transaction.data and 'Beginning' in transaction.data['Description']:
+                        new_running_balance = transaction.data['Running Bal.']
+                        current_running_balances[account] = new_running_balance
+                        continue
+                    elif account not in current_running_balances:
+                        current_running_balances[account] = '0.00'
 
-                if account not in current_running_balances:
-                    current_running_balances[account] = '0.00'
-
-                new_running_balance = str(round(float(transaction.data['Amount'])\
-                                                + float(current_running_balances[account]), 2))
-                current_running_balances[account] = new_running_balance
+                    new_running_balance = str(round(float(transaction.data['Amount'])\
+                                                    + float(current_running_balances[account]), 2))
+                    current_running_balances[account] = new_running_balance
 
         return 0
 
