@@ -5,6 +5,7 @@ import os
 import csv
 import transaction
 import day
+from matplotlib import pyplot as py
 
 
 # A calendar which stores Day objects and maintains the relationship of
@@ -88,7 +89,7 @@ class Calendar(object):
             transactions_list += self.read_new_csv(transaction_file_name)
 
         if transactions_list:
-            self.add_transactions(transactions_list)
+            self.update_cal(transactions_list)
 
     # TODO: Should the header be stored in the configuration file?
     # Should each file check that it matches the known header?
@@ -144,16 +145,37 @@ class Calendar(object):
 
         return transaction_dict
 
-    def add_transactions(self, transactions):
-        # Ensures that a transactions is iterable
-        transactions = list(transactions)
+    # Add transactions to the calendar and update the necessary values
+    def update_cal(self, transactions_list):
+        # Need to account for when only 1 transaction is passed
+        if type(transactions_list) is not list: transactions_list = [transactions_list]
 
-        for new_transaction in transactions:
-            current_date = new_transaction.data['Date']
+        for transaction in transactions_list:
 
-            if not current_date in self.days:
-                self.days[current_date] = day.Day(current_date)
+            if str(transaction.date) not in self.days:
+                self.days[str(transaction.date)] = day.Day(transaction.date)
 
-            self.days[current_date].add_transaction(new_transaction)
+            self.days[str(transaction.date)].add_transaction(transaction)
 
         self.update_running_bal()
+        self.config.write_config()
+
+    # def save_to_csv(self):
+    #     config_directory = self.config.config_directory
+    #     # Check to see if save files exist create them if they don't
+    #     for account in self.config.app_dictionary['accounts']:
+    #         file_name = os.path.join(config_directory, 'save_calendar_{}.csv'.format(account))
+    #         if not os.path.isfile(file_name):
+    #             # TODO: Add headers to configuration dictionary
+    #             header = self.config.app_dictionary['']
+    #             with open(file_name, 'w') as csvfile:
+    #                 csvwriter = csv.writer(csvfile)
+    #                 csvwriter.write()
+    #
+    #     for current_day in self.days:
+    #
+    #         with open('calendar_save_{}.csv'.format(account), 'a') as csvfile,
+    #              open():
+
+
+

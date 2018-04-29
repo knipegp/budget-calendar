@@ -73,7 +73,7 @@ class Day(object):
     def add_transaction(self, tran):
 
         # Check that transaction is being added to the correct date object
-        if tran.data['Date'] != self.date:
+        if tran.date != self.date:
             return 1
 
         # Add the account to that date if it does not exist

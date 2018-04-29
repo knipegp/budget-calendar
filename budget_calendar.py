@@ -38,22 +38,6 @@ class BudgetCalendar(calendar.Calendar):
 
         self.update_cal(new_transactions)
 
-    # Add transactions to the calendar and update the necessary values
-    def update_cal(self, transactions):
-        # Need to account for when only 1 transaction is passed
-        trans = list()
-        trans = trans + transactions
-
-        for tran in trans:
-
-            if str(tran.date) not in self.days:
-                self.days[str(tran.date)] = day.Day(tran.date)
-
-            self.days[str(tran.date)].add_transaction(tran)
-
-        self.update_running_bal()
-        self.config.write_config()
-
 
 def main():
     cal = calendar.Calendar()
