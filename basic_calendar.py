@@ -67,11 +67,11 @@ class Calendar(object):
     # Update the running balance of each account of each day based on the
     # transactions added to each day of the calendar
     def update_running_bal(self):
-        '''
+        """
         Update the running balances for all Day objects in the calendar.
         :return: 0 if the function executes without errors.
                  1 if the function executes with an error.
-        '''
+        """
 
         for day_str in sorted(self.days):
             previous_day_obj = self.get_previous_day_obj(day_str)

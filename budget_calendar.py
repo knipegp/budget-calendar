@@ -1,14 +1,9 @@
 import configuration
-import calendar
-import datetime
-import day
+import basic_calendar
 import transaction
-import os
-import logging
-import re
 
 
-class BudgetCalendar(calendar.Calendar):
+class BudgetCalendar(basic_calendar.Calendar):
 
     def __init__(self):
         super(BudgetCalendar, self).__init__('budget_calendar')
@@ -40,7 +35,7 @@ class BudgetCalendar(calendar.Calendar):
 
 
 def main():
-    cal = calendar.Calendar()
+    cal = basic_calendar.Calendar()
     cal.open_transactions()
     cal.print_calendar()
     # cal.save_calendar()
