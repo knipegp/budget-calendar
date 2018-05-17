@@ -18,7 +18,7 @@ class BudgetCalendar(basic_calendar.Calendar):
         if account == 'new':
             account = configuration.get_free_answer('Enter new account name: ', 1)
 
-        tran = transaction.Transaction(account)
+        tran = transaction.Transaction(account, self.config)
         new_transactions.append(tran)
 
         # Create repeated transactions

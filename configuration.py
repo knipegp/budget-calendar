@@ -86,7 +86,7 @@ def get_free_answer(prompt, responses=1, possible_responses=list()):
         elif not response and loop:
             ret = ret[:-1]
 
-            ans = get_binary_answer('Is {} correct?')
+            ans = get_binary_answer('Is {} correct?'.format(ret))
 
             if ans:
                 break

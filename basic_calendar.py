@@ -86,6 +86,7 @@ class Calendar(object):
         files_in_dir = os.listdir(transaction_dir)
 
         for transaction_file_name in files_in_dir:
+            transaction_file_name = os.path.join(transaction_dir, transaction_file_name)
             transactions_list += self.read_new_csv(transaction_file_name)
 
         if transactions_list:
@@ -127,7 +128,7 @@ class Calendar(object):
                             transaction_data[key] = row[idx]
 
                     transaction_data = self.add_standard_keys(file_account, transaction_data)
-                    new_transaction = transaction.Transaction(file_account, transaction_data)
+                    new_transaction = transaction.Transaction(file_account, self.config, transaction_data)
                     new_transactions_list.append(new_transaction)
 
         return new_transactions_list

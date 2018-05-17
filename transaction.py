@@ -5,11 +5,11 @@ import configuration
 # Class for transactions read from bank statements
 class Transaction:
 
-    def __init__(self, account, data_dict=None):
+    def __init__(self, account, app_config, data_dict=None):
         self.data = dict()
 
         # TODO: Get rid of multiple instances of the same config
-        self.config = configuration.AppConfiguration('budget_calendar')
+        self.config = app_config
 
         # Add the transaction descriptors to the transaction if the account already exists
         try:
