@@ -2,3 +2,5 @@
 *.conf
 *.txt
 *.idea
+transactions/*
+.config/*
