@@ -1,6 +1,5 @@
 import os
-from src import budget_calendar, financial_account, financial_statement, configuration, financial_transaction
-
+from backend import financial_statement, financial_transaction, budget_calendar, configuration, financial_account
 
 DIR = os.path.dirname(os.path.realpath(__file__))
 
