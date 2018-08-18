@@ -5,8 +5,9 @@ import json
 
 class AppConfiguration(object):
 
-    def __init__(self, app_name, force_write=False):
-        self.app_directory = os.path.dirname(os.path.realpath(__file__))
+    def __init__(self, app_name, app_dir, force_write=False):
+        assert os.path.exists(app_dir), "{} is not valid app_dir".format(app_dir)
+        self.app_directory = app_dir
         self.config_directory = os.path.join(self.app_directory, '.config')
         self.transaction_directory = os.path.join(self.app_directory, 'transactions', 'new')
         self.saved_transaction_directory = os.path.join(self.app_directory, 'transactions', 'saved')
@@ -40,7 +41,8 @@ class AppConfiguration(object):
 
         self.accounts = utils.get_free_answer('Enter account identifier: ', 0)
         for account in self.accounts:
-            self.starting_bal[account] = float(utils.get_free_answer('Enter starting balance for account {}: '.format(account)))
+            self.starting_bal[account] = float(
+                utils.get_free_answer('Enter starting balance for account {}: '.format(account)))
 
     def write_config(self):
         write_dict = {

@@ -1,15 +1,14 @@
-import budget_calendar
-import configuration
 import os
-import financial_transaction
-import financial_account
-import financial_statement
+from src import budget_calendar, financial_account, financial_statement, configuration, financial_transaction
+
+
+DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 class Application(object):
 
     def __init__(self):
-        self.config = configuration.AppConfiguration('budget-calendar')
+        self.config = configuration.AppConfiguration('budget-calendar', DIR)
         self.calendar = budget_calendar.Calendar(self.config)
         self.accounts = dict()
 
@@ -74,6 +73,10 @@ class Application(object):
             new_statement.write(rows)
 
 
-if __name__ == '__main__':
+def main():
     app = Application()
     app.run()
+
+
+if __name__ == '__main__':
+    main()
