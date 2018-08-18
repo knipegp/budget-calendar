@@ -34,7 +34,7 @@ class Account(object):
 
     def get_transactions(self):
         ret = list()
-        for date in self._transactions:
+        for date in self._sorted_keys:
             for transaction in self._transactions[date]:
                 ret.append(transaction)
 

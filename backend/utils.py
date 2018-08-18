@@ -86,9 +86,6 @@ def str_to_obj(date_str, delimeter='-'):
 
 
 def correct_date(date_str):
-    try:
-        month, day, year = date_str.split('/')
-    except:
-        pass
+    month, day, year = date_str.split('/')
     date_obj = datetime.date(int(year), int(month), int(day))
     return date_obj
