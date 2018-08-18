@@ -2,7 +2,7 @@ import datetime
 import utils
 
 
-# Class for transactions read from bank statements
+# Class for _transactions read from bank statements
 class Transaction:
 
     def __init__(self, date=None, amount=None, description=None, account=None):
@@ -20,3 +20,7 @@ class Transaction:
     @property
     def csv(self):
         return ','.join([str(self.date), self.description, str(self.amount)])
+
+    @property
+    def data_dict(self):
+        return {'date': str(self.date), 'description': self.description, 'amount': str(self.amount)}

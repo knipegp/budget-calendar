@@ -5,51 +5,59 @@ import re
 
 class Statement(object):
 
-    def __init__(self, filename, config, read=True):
-        self.config = config
+    def __init__(self, file_path, account):
         self.data = dict()
-        self.rows = list()
-        self.filename = filename
+        self._rows = list()
+        self.file_path = file_path
+        # self._check_file_path()
+        self.account = account
 
-        self._check_filename()
-        self.account = self._get_account()
-        if read:
-            self.read()
+    def _check_file_path(self):
+        assert os.path.isfile(self.file_path), '{} is not an existing '\
+           'statement file.'.format(self.file_path)
 
-    def _check_filename(self):
-        abs_path = os.path.join(self.config.app_directory, 'transactions', self.filename)
-        if os.path.isfile(self.filename):
-            pass
-        elif os.path.isfile(abs_path):
-            self.filename = abs_path
-        else:
-            NotImplementedError('{} is not an existing statement file.'.format(self.filename))
+    def _write(self, rows, header=('date', 'description', 'amount')):
+        assert rows, 'No valid rows read {}.'.format(self.file_path)
+        with open(self.file_path, 'w') as csv_file:
+            if not header:
+                csv_writer = csv.writer(csv_file)
+            else:
+                csv_writer = csv.DictWriter(csv_file, header)
+                csv_writer.writeheader()
+            for row in rows:
+                csv_writer.writerow(row)
 
-    def _get_account(self):
-        ret = None
-        for account in self.config.accounts:
+    def remove_file(self):
+        os.remove(self.file_path)
 
-            if account in self.filename:
-                ret = account
 
-        if not ret:
-            raise NotImplementedError('Cannot find valid account for {}'.format(self.filename))
+class WriteStatement(Statement):
 
-        return ret
+    def __init__(self, file_path, account):
+        super(WriteStatement, self).__init__(file_path, account)
 
-    def read(self):
-        self.prep_file()
-        with open(self.filename, 'r') as csv_file:
+    def write(self, rows, header=('date', 'description', 'amount')):
+        self._write(rows, header)
+
+
+class ReadStatement(Statement):
+
+    def __init__(self, file_path, account):
+        super(ReadStatement, self).__init__(file_path, account)
+
+    def _read(self):
+        self._prep_file()
+        with open(self.file_path, 'r') as csv_file:
             csv_reader = csv.DictReader(csv_file)
 
             for row in csv_reader:
-                self.rows.append(row)
+                self._rows.append(row)
 
-    def prep_file(self):
+    def _prep_file(self):
         start_read = False
         rows = list()
         first_line = True
-        with open(self.filename, 'r') as csv_file:
+        with open(self.file_path, 'r') as csv_file:
             csv_reader = csv.reader(csv_file)
 
             for row in csv_reader:
@@ -67,14 +75,13 @@ class Statement(object):
                 first_line = False
 
         if start_read:
-            self.write_statement(rows)
+            self._write(rows)
 
-    def write_statement(self, rows):
-        assert rows, 'No valid rows read {}.'.format(self.filename)
-        with open(self.filename, 'w') as csv_file:
-            csv_writer = csv.writer(csv_file)
-            for row in rows:
-                csv_writer.writerow(row)
+    def get_rows(self):
+        ret = None
+        if not self._rows:
+            self._read()
+        else:
+            pass
 
-    def delete_file(self):
-        os.remove(self.filename)
+        return self._rows

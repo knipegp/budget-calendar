@@ -8,7 +8,8 @@ class AppConfiguration(object):
     def __init__(self, app_name, force_write=False):
         self.app_directory = os.path.dirname(os.path.realpath(__file__))
         self.config_directory = os.path.join(self.app_directory, '.config')
-        self.transaction_directory = os.path.join(self.app_directory, 'transactions')
+        self.transaction_directory = os.path.join(self.app_directory, 'transactions', 'new')
+        self.saved_transaction_directory = os.path.join(self.app_directory, 'transactions', 'saved')
         # TODO: switch config file to toml
         self.config_file = self.config_directory + '/{}.json'.format(str(app_name))
 
