@@ -52,6 +52,10 @@ class Application(object):
                 self.accounts[account].add_transaction(new_transaction.date, new_transaction)
                 self.accounts[account].update_running_bal(new_transaction.amount)
 
+                self.calendar.add_transaction(account, new_transaction)
+
+        self.calendar.update_running_balances()
+
     def get_statement_account(self, filename):
         ret = None
         for account in self.config.accounts:
