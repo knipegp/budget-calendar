@@ -1,6 +1,7 @@
 import os
 import csv
 import re
+import shutil
 
 
 class Statement(object):
@@ -18,7 +19,7 @@ class Statement(object):
 
     def _write(self, rows, header=('date', 'description', 'amount')):
         assert rows, 'No valid rows read {}.'.format(self.file_path)
-        with open(self.file_path, 'w') as csv_file:
+        with open('temp.csv', 'w') as csv_file:
             if not header:
                 csv_writer = csv.writer(csv_file)
             else:
@@ -26,6 +27,8 @@ class Statement(object):
                 csv_writer.writeheader()
             for row in rows:
                 csv_writer.writerow(row)
+
+        shutil.copyfile('temp.csv', self.file_path)
 
     def remove_file(self):
         os.remove(self.file_path)
@@ -60,11 +63,12 @@ class ReadStatement(Statement):
         with open(self.file_path, 'r') as csv_file:
             csv_reader = csv.reader(csv_file)
 
+            # TODO: Discrepancy between reading new checkings and new credit
             for row in csv_reader:
-                if re.search('date.*amount', str(row).lower()):
-                    if first_line:
-                        break
-                    elif not start_read:
+                if re.search('^date.*amount$', str(row).lower()):
+                    break
+                elif re.search('date.*amount', str(row).lower()):
+                    if not start_read:
                         start_read = True
                     else:
                         raise ValueError('Muliple headers read {}'.format(row))
@@ -75,7 +79,7 @@ class ReadStatement(Statement):
                 first_line = False
 
         if start_read:
-            self._write(rows)
+            self._write(rows, None)
 
     def get_rows(self):
         ret = None

@@ -18,6 +18,7 @@ class Application(object):
     def run(self):
         self.add_transactions_from_statements()
         self.save()
+        self.print_cal()
 
     def add_transactions_from_statements(self):
         statements = list()
@@ -75,6 +76,10 @@ class Application(object):
                 rows.append(transaction.data_dict)
 
             new_statement.write(rows)
+
+    def print_cal(self):
+        for day in sorted(self.calendar.days):
+            print(self.calendar.days[day])
 
 
 def main():

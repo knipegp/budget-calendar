@@ -135,3 +135,12 @@ class Day(object):
         if account in self.transactions:
             for transaction in self.transactions[account]:
                 self.running_balance[account] += transaction.amount
+
+    def __str__(self):
+        ret_str = '{}\n'.format(self.date)
+        for account in self.running_balance:
+            ret_str += '{}: {}\n'.format(account, self.running_balance[account])
+
+        ret_str += '\n'
+
+        return ret_str
