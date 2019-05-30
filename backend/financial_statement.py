@@ -64,19 +64,23 @@ class ReadStatement(Statement):
             csv_reader = csv.reader(csv_file)
 
             # TODO: Discrepancy between reading new checkings and new credit
-            for row in csv_reader:
-                if re.search('^date.*amount$', str(row).lower()):
-                    break
-                elif re.search('date.*amount', str(row).lower()):
-                    if not start_read:
-                        start_read = True
-                    else:
-                        raise ValueError('Muliple headers read {}'.format(row))
+            try:
+                for row in csv_reader:
+                    if re.search('^date.*amount$', str(row).lower()):
+                        break
+                    elif re.search('date.*amount', str(row).lower()):
+                        if not start_read:
+                            start_read = True
+                        else:
+                            raise ValueError('Muliple headers read {}'.format(row))
 
-                if start_read:
-                    rows.append(row)
+                    if start_read:
+                        rows.append(row)
 
-                first_line = False
+                    first_line = False
+            except csv.Error as err:
+                print self.file_path
+                raise err
 
         if start_read:
             self._write(rows, None)
