@@ -1,19 +1,31 @@
+# pylint: disable=missing-docstring
 import os
-from backend import financial_statement, financial_transaction, budget_calendar, configuration, financial_account
+from backend import (
+    financial_statement,
+    financial_transaction,
+    budget_calendar,
+    configuration,
+    financial_account,
+)
 
 
 DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-class Application(object):
-
+class Application:
     def __init__(self):
-        self.config = configuration.AppConfiguration('budget-calendar', DIR)
+        self.config = configuration.AppConfiguration("budget-calendar", DIR)
         self.calendar = budget_calendar.Calendar(self.config)
         self.accounts = dict()
 
         for account in self.config.accounts:
-            self.accounts.update({account: financial_account.Account(account, self.config.starting_bal[account])})
+            self.accounts.update(
+                {
+                    account: financial_account.Account(
+                        account, self.config.starting_bal[account]
+                    )
+                }
+            )
 
     def run(self):
         self.add_transactions_from_statements()
@@ -37,20 +49,27 @@ class Application(object):
                 description = None
                 amount = None
                 for key in transaction:
-                    if 'date' in key.lower():
+                    if "date" in key.lower():
                         date = transaction[key]
-                    elif 'payee' in key.lower() or 'description' in key.lower():
+                    elif "payee" in key.lower() or "description" in key.lower():
                         description = transaction[key]
-                    elif 'amount' in key.lower():
+                    elif "amount" in key.lower():
                         if not transaction[key]:
                             amount = 0.0
                         else:
                             amount = float(transaction[key])
 
-                assert None not in [date, description, amount],\
-                    "Transaction {} was not read correctly.".format(str(transaction))
-                new_transaction = financial_transaction.Transaction(date, amount, description, account)
-                self.accounts[account].add_transaction(new_transaction.date, new_transaction)
+                assert None not in [
+                    date,
+                    description,
+                    amount,
+                ], "Transaction {} was not read correctly.".format(str(transaction))
+                new_transaction = financial_transaction.Transaction(
+                    date, amount, description, account
+                )
+                self.accounts[account].add_transaction(
+                    new_transaction.date, new_transaction
+                )
                 self.accounts[account].update_running_bal(new_transaction.amount)
 
                 self.calendar.add_transaction(account, new_transaction)
@@ -63,13 +82,16 @@ class Application(object):
             if account in filename:
                 ret = account
 
-        assert ret, '{} does not belong to an account'.format(filename)
+        assert ret, "{} does not belong to an account".format(filename)
 
         return ret
 
     def save(self):
         for account in self.accounts:
-            file_path = os.path.join(self.config.saved_transaction_directory, 'account_{}.csv'.format(account))
+            file_path = os.path.join(
+                self.config.saved_transaction_directory,
+                "account_{}.csv".format(account),
+            )
             new_statement = financial_statement.WriteStatement(file_path, account)
             rows = list()
             for transaction in self.accounts[account].get_transactions():
@@ -79,7 +101,7 @@ class Application(object):
 
     def print_cal(self):
         for day in sorted(self.calendar.days):
-            print(self.calendar.days[day])
+            print((self.calendar.days[day]))
 
 
 def main():
@@ -87,5 +109,5 @@ def main():
     app.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

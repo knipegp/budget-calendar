@@ -1,7 +1,5 @@
-
-
-class Account(object):
-
+# pylint: disable=missing-docstring
+class Account:
     def __init__(self, name, starting_bal):
         self.name = name
         self.running_balance = starting_bal
