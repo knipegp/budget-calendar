@@ -4,3 +4,4 @@
 *.idea
 transactions/*
 .config/*
+__pycache__
