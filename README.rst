@@ -87,3 +87,18 @@ Members:
     #.  date
     #.  string description
     #.  amount
+
+Currency
+********
+
+Python's ``float`` implementation is to broad. Currency is generally represented only to two decimal
+places. A defined ``str`` representation of currency promotes cohesion throughout the application.
+
+I'm only working in USD, so I don't plan on making this extendable to other currencies. We'll burn
+that bridge when we get to it.
+
+Requirements:
+
+    #.  Limit to two decimal places
+    #.  Define a ``str`` representation
+    #.  Account for floating point error in multiplication and division
